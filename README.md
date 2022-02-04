@@ -98,3 +98,58 @@ controller/AppController.java
 
 ```
 commit - with redis
+<br>
+model/NewTinyRequest.java
+```java
+public class NewTinyRequest {
+    private  String longUrl;
+
+    public String getLongUrl() {
+        return longUrl;
+    }
+}
+```
+application.properties
+```
+base.url = http://localhost:8080/
+```
+controller/AppController.java
+```
+    @Autowired
+    ObjectMapper om;
+    @Value("${base.url}")
+    String baseUrl;
+
+    @RequestMapping(value = "/tiny", method = RequestMethod.POST)
+    public String generate(@RequestBody NewTinyRequest request) throws JsonProcessingException {
+        String tinyCode = generateTinyCode();
+        int i = 0;
+        while (!redis.set(tinyCode, om.writeValueAsString(request)) && i < MAX_RETRIES) {
+            tinyCode = generateTinyCode();
+            i++;
+        }
+        if (i == MAX_RETRIES) throw new RuntimeException("SPACE IS FULL");
+        return baseUrl + tinyCode + "/";
+    }
+
+    @RequestMapping(value = "/{tiny}/", method = RequestMethod.GET)
+    public ModelAndView getTiny(@PathVariable String tiny) throws JsonProcessingException {
+        System.out.println("getRequest for tiny: " + tiny);
+        Object tinyRequestStr = redis.get(tiny);
+        NewTinyRequest tinyRequest = om.readValue(tinyRequestStr.toString(),NewTinyRequest.class);
+        if (tinyRequest.getLongUrl() != null) {
+            return new ModelAndView("redirect:" + tinyRequest.getLongUrl());
+        } else {
+            throw new RuntimeException(tiny + " not found");
+        }
+    }
+    private String generateTinyCode() {
+        String charPool = "ABCDEFHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder res = new StringBuilder();
+        for (int i = 0; i < TINY_LENGTH; i++) {
+            res.append(charPool.charAt(random.nextInt(charPool.length())));
+        }
+        return res.toString();
+    }
+```
+commit - with redirect
