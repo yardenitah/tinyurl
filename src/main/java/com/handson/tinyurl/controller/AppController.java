@@ -1,19 +1,22 @@
 package com.handson.tinyurl.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import com.handson.tinyurl.service.Redis;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 public class AppController {
 
+    @Autowired
+    Redis redis;
+
     @RequestMapping(value = "/hello", method = RequestMethod.GET)
-    public String getClicks(@PathVariable String tiny) {
-        return "hello";
+    public Boolean hello(@RequestParam String key) {
+        System.out.println(redis.get(key).toString());
+        return redis.set(key,key);
     }
 
 }
