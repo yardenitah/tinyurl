@@ -52,7 +52,7 @@ docker-compose.yml
 ```
 version: "3"
 services:
-  db:
+  redis:
     image: redis
     ports:
       - 6379:6379
@@ -153,3 +153,91 @@ controller/AppController.java
     }
 ```
 commit - with redirect
+<br>
+pom.xml
+```
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-mongodb</artifactId>
+		</dependency>
+```
+docker-compose.yml
+```
+  mongo:
+    image: mongo
+    ports:
+      - 27017:27017
+    privileged: true
+```
+application.properties
+```
+spring.data.mongodb.uri=mongodb://localhost:27017/tinydb
+```
+model/newTinyRequest
+```java
+    private  String userName;
+
+    public String getUserName() {
+        return userName;
+    }
+```
+apply patch - mongo
+<br>
+controller/AppController.java
+```java
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
+    @RequestMapping(value = "/user", method = RequestMethod.POST)
+    public User createUser(@RequestParam String name) {
+        User user = anUser().withName(name).build();
+        user = userRepository.insert(user);
+        return user;
+    }
+
+    @RequestMapping(value = "/user/{name}", method = RequestMethod.GET)
+    public User getUser(@RequestParam String name) {
+        User user = userRepository.findFirstByName(name);
+        return user;
+    }
+
+    private void incrementMongoField(String userName, String key){
+        Query query = Query.query(Criteria.where("name").is(userName));
+        Update update = new Update().inc(key, 1);
+        mongoTemplate.updateFirst(query, update, "users");
+    }
+
+
+    @RequestMapping(value = "/tiny", method = RequestMethod.POST)
+    public String generate(@RequestBody NewTinyRequest request) throws JsonProcessingException {
+        String tinyCode = generateTinyCode();
+        int i = 0;
+        while (!redis.set(tinyCode, om.writeValueAsString(request)) && i < MAX_RETRIES) {
+            tinyCode = generateTinyCode();
+            i++;
+        }
+        if (i == MAX_RETRIES) throw new RuntimeException("SPACE IS FULL");
+        return baseUrl + tinyCode + "/";
+    }
+
+    @RequestMapping(value = "/{tiny}/", method = RequestMethod.GET)
+    public ModelAndView getTiny(@PathVariable String tiny) throws JsonProcessingException {
+        Object tinyRequestStr = redis.get(tiny);
+        NewTinyRequest tinyRequest = om.readValue(tinyRequestStr.toString(),NewTinyRequest.class);
+        if (tinyRequest.getLongUrl() != null) {
+            String userName = tinyRequest.getUserName();
+            if ( userName != null) {
+                incrementMongoField(userName, "allUrlClicks");
+                incrementMongoField(userName,
+                        "shorts."  + tiny + ".clicks." + getCurMonth());
+            }
+            return new ModelAndView("redirect:" + tinyRequest.getLongUrl());
+        } else {
+            throw new RuntimeException(tiny + " not found");
+        }
+    }
+```
+commit - with mongo
