@@ -1,5 +1,11 @@
 # tinyurl
 
+sudo vi /etc/hosts
+```
+127.0.0.1 cassandra
+127.0.0.1 redis
+127.0.0.1 mongo
+```
 ### swagger
 pom.xml
 <br>
@@ -241,3 +247,53 @@ controller/AppController.java
     }
 ```
 commit - with mongo
+pom.xml
+```
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-cassandra</artifactId>
+		</dependency>
+```
+docker-compose.yml
+```
+  cassandra:
+    image: "cassandra:3.11.9"
+    ports:
+      - "9042:9042"
+    environment:
+      - "MAX_HEAP_SIZE=256M"
+      - "HEAP_NEWSIZE=128M"
+```
+run
+```
+CREATE KEYSPACE tiny_keyspace
+WITH replication = {'class':'SimpleStrategy', 'replication_factor' : 1};
+```
+application.properties
+```
+spring.data.cassandra.keyspace-name=tiny_keyspace
+spring.data.cassandra.contact-points=cassandra
+spring.data.cassandra.port=9042
+spring.data.cassandra.schema-action=create_if_not_exists
+```
+apply patch - cassandra.patch
+<br>
+controller/AppController.java
+```java
+    @Autowired
+    private UserClickRepository userClickRepository;
+
+    @RequestMapping(value = "/user/{name}/clicks", method = RequestMethod.GET)
+    public List<UserClickOut> getUserClicks(@RequestParam String name) {
+        var userClicks = createStreamFromIterator( userClickRepository.findByUserName(name).iterator())
+                .map(userClick -> UserClickOut.of(userClick))
+                .collect(Collectors.toList());
+        return userClicks;
+    }
+
+        userClickRepository.save(anUserClick().userClickKey(anUserClickKey().withUserName(userName).withClickTime(new Date()).build())
+        .tiny(tiny).longUrl(tinyRequest.getLongUrl()).build());
+```
+commit - with cassandra
+
+
