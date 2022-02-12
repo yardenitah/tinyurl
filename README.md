@@ -9,7 +9,7 @@ sudo vi /etc/hosts
 ### swagger
 pom.xml
 <br>
-<version>2.6.2</version> -> <version>2.5.2</version>
+<version>   </version> -> <version>2.5.2</version>
 ```
 		<dependency>
 			<groupId>io.springfox</groupId>
@@ -166,11 +166,19 @@ pom.xml
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+			<version>2.10.13</version>
+		</dependency>
+
+
 ```
 docker-compose.yml
 ```
   mongo:
-    image: mongo
+    image: mongo:4.0
     ports:
       - 27017:27017
     privileged: true
