@@ -1,0 +1,19 @@
+# IntelliJ and JetBrains
+.idea/
+
+# Target directory
+target/
+
+# Patches (optional, if sensitive)
+*.patch
+
+# Docker Compose (optional, if sensitive)
+docker-compose.yml
+
+# Configuration files (if they contain sensitive information)
+*.properties
+*.yml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
